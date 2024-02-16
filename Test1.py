@@ -16,25 +16,32 @@ nlp = spacy.load("en_core_web_sm")
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(min_detection_confidence=0.2)
 
-# Configure depth and color streams from Intel RealSense
-pipeline = rs.pipeline()
-config = rs.config()
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+try:
+    # Configure depth and color streams from Intel RealSense
+    pipeline = rs.pipeline()
+    config = rs.config()
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-# Start streaming
-pipeline.start(config)
+    # Start streaming
+    pipeline.start(config)
 
-# Load pre-trained model for object detection (modify paths as needed)
-net = cv2.dnn.readNetFromCaffe(r'C:\Users\korth\Downloads\MobileNetSSD_deploy.prototxt.txt',
-                               r'C:\Users\korth\Downloads\MobileNetSSD_deploy.caffemodel')
-CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-           "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+    # Load pre-trained model for object detection (modify paths as needed)
+    net = cv2.dnn.readNetFromCaffe(r'C:\Users\Luis\Capstone II\SeniorDesign-AIGlove\MobileNetSSD_deploy.prototxt.txt',
+                                   r'C:\Users\Luis\Capstone II\SeniorDesign-AIGlove\MobileNetSSD_deploy.caffemodel')
+    CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+
+except Exception as e:
+    print(f"Error: {e}")
+    print("Switching to webcam...")
+    pipeline = None  # Set pipeline to None so we know to use the webcam instead
 
 # Speech recognition functions
 def speak(text):
     engine.say(text)
     engine.runAndWait()
+
 
 def recognize_speech():
     recognizer = sr.Recognizer()
@@ -50,12 +57,14 @@ def recognize_speech():
         except sr.RequestError:
             print("Could not request results from the service")
 
+
 def extract_object(sentence):
     doc = nlp(sentence)
     for token in doc:
         if "obj" in token.dep_:
             return token.text
     return None
+
 
 # Function to get 3D coordinates
 def get_3d_coordinates(depth_frame, x, y):
@@ -67,6 +76,7 @@ def get_3d_coordinates(depth_frame, x, y):
         return np.array(depth_point)
     else:
         return None
+
 
 # Function to get average depth, ignoring zero values
 def get_average_depth(depth_frame, bbox):
@@ -97,6 +107,7 @@ def get_average_depth(depth_frame, bbox):
     else:
         return None
 
+
 # Define a square size for depth calculation
 square_size = 5
 
@@ -107,9 +118,15 @@ print("Object of interest:", object_of_interest)
 
 try:
     while True:
-        frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
+        if pipeline:
+            frames = pipeline.wait_for_frames()
+            depth_frame = frames.get_depth_frame()
+            color_frame = frames.get_color_frame()
+        else:
+            # If pipeline is None, use webcam
+            _, color_frame = cv2.VideoCapture(0).read()
+            depth_frame = None
+
         if not depth_frame or not color_frame:
             continue
 
@@ -170,14 +187,14 @@ try:
             if object_center is not None and palm_coord is not None:
                 cv2.line(color_image, palm_coord, object_center, (255, 0, 0), 2)
 
-       
-
             # Display both color and depth images
         cv2.imshow('RealSense Color', color_image)
         cv2.imshow('RealSense Depth', depth_colormap)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
 finally:
-    pipeline.stop()
+    if pipeline:
+        pipeline.stop()
     cv2.destroyAllWindows()
