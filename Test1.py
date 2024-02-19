@@ -54,9 +54,7 @@ prototxt_path = os.path.join("C:", "Users", "Luis", "Documents", "Capstone II", 
 caffemodel_path = os.path.join("C:", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove", "MobileNetSSD_deploy.caffemodel")  # change this too
 
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
-CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-           "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
-           "tvmonitor"]
+CLASSES = ["background", "bottle", "bus", "cat", "chair", "person", "pottedplant","tvmonitor"]
 
 # Attempt to start webcam
 cap = cv2.VideoCapture(0)
