@@ -21,14 +21,12 @@ realsense_connected = False
 # Initialize NLP model
 nlp = spacy.load("en_core_web_sm")
 
-
 def extract_object(sentence):
     doc = nlp(sentence)
     for token in doc:
         if "obj" in token.dep_:
             return token.text
     return None
-
 
 # Attempt to start RealSense pipeline
 try:
@@ -44,14 +42,13 @@ try:
     pipeline.start(config)
     realsense_connected = True
 
-
 except Exception as e:
     print(f"Error: {e}")
     print("RealSense camera not connected. Switching to webcam...")
 
 # Load pre-trained model for object detection (modify paths as needed)
-prototxt_path = os.path.join("C:", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove", "MobileNetSSD_deploy.prototxt.txt")  # change this to your pc
-caffemodel_path = os.path.join("C:", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove", "MobileNetSSD_deploy.caffemodel")  # change this too
+prototxt_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove", "MobileNetSSD_deploy.prototxt.txt")
+caffemodel_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove", "MobileNetSSD_deploy.caffemodel")
 
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 CLASSES = ["background", "bottle", "cat", "chair", "person", "tvmonitor"]
@@ -109,7 +106,7 @@ while True:
         confidence = detections[0, 0, i, 2]
         if confidence > 0.2:
             class_id = int(detections[0, 0, i, 1])
-            if CLASSES[class_id] == object_of_interest:
+            if 0 <= class_id < len(CLASSES) and CLASSES[class_id] == object_of_interest:
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (startX, startY, endX, endY) = box.astype("int")
                 cv2.rectangle(color_image, (startX, startY), (endX, endY), (0, 255, 0), 2)
