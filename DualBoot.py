@@ -136,7 +136,7 @@ def get_average_depth(depth_frame, bbox):
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = "bottle"
+spoken_text = recognize_speech()
 object_of_interest = spoken_text
 print("Object of interest:", spoken_text)
 
