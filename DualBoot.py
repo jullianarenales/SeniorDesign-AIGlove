@@ -1,4 +1,8 @@
 import time
+import os
+import sys
+os.add_dll_directory("E:\\Users\\amade\\opencvGPU\\build\\bin")
+sys.path.append("E:\\Users\\amade\\anaconda3\\Lib\\site-packages")
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -11,13 +15,13 @@ import os.path
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
 
-# Enable CUDA if available !!!!!!!!!!!! IF THIS BREAKS JUST COMMENT IT OUT !!!!!!!!!!!!!!!
-if cuda_available:
-    print("CUDA is available. Enabling CUDA support in OpenCV.")
-    cv2.dnn.cuda.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    cv2.dnn.cuda.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-else:
-    print("CUDA is not available. Using CPU for OpenCV operations.")
+# Enable CUDA if available !!!!!!!!!!!! IF THIS BREAKS JUST COMMENT IT OUT !!!!!!!!!!!!!!! TODO: Cv2 Dnn CUDA support cannot be enabled this way leaving this for archive purposes - Amadeo
+#if cuda_available:
+#    print("CUDA is available. Enabling CUDA support in OpenCV.")
+    #cv2.dnn.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    #cv2.dnn.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+#else:
+#    print("CUDA is not available. Using CPU for OpenCV operations.")
 
 # Initialize text-to-speech engine
 engine = pyttsx3.init()
@@ -51,8 +55,7 @@ if not realsense_connected:
     config = rs.config()
     config.enable_stream(rs.stream.depth, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, rs.format.rgb8, 30)
-    bag_file_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
-                                 "test.bag")
+    bag_file_path = "E:\\Desktop\\COMPSCI\\VisionGlide\\SeniorDesign-AIGlove\\test.bag"
     config.enable_device_from_file(bag_file_path)
 
 
@@ -60,14 +63,23 @@ if not realsense_connected:
 pipeline.start(config)
 
 # Load pre-trained model for object detection (modify paths as needed)
-prototxt_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
-                             "MobileNetSSD_deploy.prototxt.txt")
-caffemodel_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
-                               "MobileNetSSD_deploy.caffemodel")
+prototxt_path = "E:\Desktop\COMPSCI\VisionGlide\SeniorDesign-AIGlove\MobileNetSSD_deploy.prototxt.txt"
+caffemodel_path = "E:\Desktop\COMPSCI\VisionGlide\SeniorDesign-AIGlove\MobileNetSSD_deploy.caffemodel"
+#prototxt_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
+#                             "MobileNetSSD_deploy.prototxt.txt")
+#caffemodel_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
+#                               "MobileNetSSD_deploy.caffemodel")
 # prototxt_path = os.path.join("C:\\", "Users", "korth", "Downloads", "MobileNetSSD_deploy.prototxt.txt")
 # caffemodel_path = os.path.join("C:\\", "Users", "korth", "Downloads", "MobileNetSSD_deploy.caffemodel")
 
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+if cuda_available:
+    print("CUDA is available. Enabling CUDA support in OpenCV.")
+    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+else:
+    print("CUDA is not available. Using CPU for OpenCV operations.")
+    
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
@@ -78,7 +90,7 @@ def speak(text):
     engine.runAndWait()
 
 
-def recognize_speech():
+#def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         speak("Listening...")
@@ -90,7 +102,7 @@ def recognize_speech():
         except sr.UnknownValueError:
             print("Could not understand the audio")
         except sr.RequestError:
-            print("Could not request results from the service")
+           print("Could not request results from the service")
 
 
 # Function to get 3D coordinates
@@ -172,7 +184,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.7:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == object_of_interest:
+                if CLASSES[idx] == "water bottle":
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image.shape[1], color_image.shape[0], color_image.shape[1],
                          color_image.shape[0]])
