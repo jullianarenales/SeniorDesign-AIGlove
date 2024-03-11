@@ -26,8 +26,8 @@ config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 pipeline.start(config)
 
 # Load pre-trained model for object detection (modify paths as needed)
-net = cv2.dnn.readNetFromCaffe(r'C:\Users\korth\Downloads\MobileNetSSD_deploy.prototxt.txt',
-                               r'C:\Users\korth\Downloads\MobileNetSSD_deploy.caffemodel')
+net = cv2.dnn.readNetFromCaffe(r'MobileNetSSD_deploy.prototxt.txt',
+                               r'MobileNetSSD_deploy.caffemodel')
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 

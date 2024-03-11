@@ -29,6 +29,9 @@ engine = pyttsx3.init()
 # Initialize NLP model
 nlp = spacy.load("en_core_web_sm")
 
+# Get current working directory
+current_dir = os.getcwd()
+
 # Initialize MediaPipe solutions
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(min_detection_confidence=0.2)
@@ -55,22 +58,15 @@ if not realsense_connected:
     config = rs.config()
     config.enable_stream(rs.stream.depth, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, rs.format.rgb8, 30)
-    bag_file_path = "E:\\Desktop\\COMPSCI\\VisionGlide\\SeniorDesign-AIGlove\\test.bag"
+    bag_file_path = os.path.join(current_dir, "test.bag")
     config.enable_device_from_file(bag_file_path)
-
 
 # Start streaming
 pipeline.start(config)
 
 # Load pre-trained model for object detection (modify paths as needed)
-prototxt_path = "E:\Desktop\COMPSCI\VisionGlide\SeniorDesign-AIGlove\MobileNetSSD_deploy.prototxt.txt"
-caffemodel_path = "E:\Desktop\COMPSCI\VisionGlide\SeniorDesign-AIGlove\MobileNetSSD_deploy.caffemodel"
-#prototxt_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
-#                             "MobileNetSSD_deploy.prototxt.txt")
-#caffemodel_path = os.path.join("C:\\", "Users", "Luis", "Documents", "Capstone II", "SeniorDesign-AIGlove",
-#                               "MobileNetSSD_deploy.caffemodel")
-# prototxt_path = os.path.join("C:\\", "Users", "korth", "Downloads", "MobileNetSSD_deploy.prototxt.txt")
-# caffemodel_path = os.path.join("C:\\", "Users", "korth", "Downloads", "MobileNetSSD_deploy.caffemodel")
+prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
+caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
 
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 if cuda_available:
