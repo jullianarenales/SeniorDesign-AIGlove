@@ -1,8 +1,4 @@
 import time
-import os
-import sys
-os.add_dll_directory("E:\\Users\\amade\\opencvGPU\\build\\bin")
-sys.path.append("E:\\Users\\amade\\anaconda3\\Lib\\site-packages")
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -11,6 +7,7 @@ import speech_recognition as sr
 import pyttsx3
 import spacy
 import os.path
+import winsound  # For Windows idk
 
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
@@ -86,7 +83,7 @@ def speak(text):
     engine.runAndWait()
 
 
-#def recognize_speech():
+def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         speak("Listening...")
@@ -143,11 +140,29 @@ def get_average_depth(depth_frame, bbox):
         return None
 
 
+def calculate_beep_frequency(vector_length):
+    # Map vector length to beep frequency
+    # Adjust these parameters as needed
+    min_frequency = 1000  # Minimum beep frequency
+    max_frequency = 5000  # Maximum beep frequency
+    max_vector_length = 300  # Maximum length of vector for max frequency
+    min_vector_length = 50  # Minimum length of vector for min frequency
+
+    # Calculate frequency based on vector length
+    if vector_length < min_vector_length:
+        return max_frequency
+    elif vector_length > max_vector_length:
+        return min_frequency
+    else:
+        return max_frequency - ((vector_length - min_vector_length) / (max_vector_length - min_vector_length)) * (
+                    max_frequency - min_frequency)
+
+
 # Define a square size for depth calculation
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = recognize_speech()
+spoken_text = "bottle" #recognize_speech()
 object_of_interest = spoken_text
 print("Object of interest:", spoken_text)
 
@@ -180,7 +195,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.7:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == "water bottle":
+                if CLASSES[idx] == object_of_interest:
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image.shape[1], color_image.shape[0], color_image.shape[1],
                          color_image.shape[0]])
@@ -219,6 +234,15 @@ try:
             # Draw the vector line from palm to object
             if object_center is not None and palm_coord is not None:
                 cv2.line(color_image, palm_coord, object_center, (255, 0, 0), 2)
+
+                # Calculate length of the vector
+                vector_length = np.linalg.norm(vector)
+
+                # Calculate beep frequency based on vector length
+                beep_frequency = calculate_beep_frequency(vector_length)
+
+                # Beep with the calculated frequency
+                winsound.Beep(int(beep_frequency), 100)  # Adjust duration as needed
 
             # Display both color and depth images
         cv2.imshow('RealSense Color', color_image)
