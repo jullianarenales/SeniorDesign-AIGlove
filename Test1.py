@@ -1,20 +1,30 @@
+
+import sys
 import cv2
+
 import numpy as np
-import mediapipe as mp
+#import mediapipe as mp
 import pyrealsense2 as rs
-import speech_recognition as sr
+"""import speech_recognition as sr
 import pyttsx3
-import spacy
+import spacy"""""
+if cv2.cuda.getCudaEnabledDeviceCount() >0:
+   print("CUDA is enabled")
+else:
+    print("CUDA is not enabled")
+
+print(cv2.__version__)
+
 
 # Initialize text-to-speech engine
-engine = pyttsx3.init()
+"""engine = pyttsx3.init()
 
 # Initialize NLP model
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.loadopencvGPU\build" --target INSTALL --config Release("en_core_web_sm")
 
 # Initialize MediaPipe solutions
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(min_detection_confidence=0.2)
+hands = mp_hands.Hands(min_detection_confidence=0.2)"""
 
 # Configure depth and color streams from Intel RealSense
 pipeline = rs.pipeline()
@@ -26,13 +36,13 @@ config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 pipeline.start(config)
 
 # Load pre-trained model for object detection (modify paths as needed)
-net = cv2.dnn.readNetFromCaffe(r'C:\Users\korth\Downloads\MobileNetSSD_deploy.prototxt.txt',
-                               r'C:\Users\korth\Downloads\MobileNetSSD_deploy.caffemodel')
+net = cv2.dnn.readNetFromCaffe(r'/home/team1/Downloads/SeniorDesign-AIGlove/MobileNetSSD_deploy.prototxt.txt',
+                               r'/home/team1/Downloads/SeniorDesign-AIGlove/MobileNetSSD_deploy.caffemodel')
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
 # Speech recognition functions
-def speak(text):
+"""def speak(text):
     engine.say(text)
     engine.runAndWait()
 
@@ -55,7 +65,7 @@ def extract_object(sentence):
     for token in doc:
         if "obj" in token.dep_:
             return token.text
-    return None
+    return None"""
 
 # Function to get 3D coordinates
 def get_3d_coordinates(depth_frame, x, y):
@@ -101,9 +111,9 @@ def get_average_depth(depth_frame, bbox):
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = recognize_speech()
+"""spoken_text = recognize_speech()
 object_of_interest = extract_object(spoken_text) if spoken_text else None
-print("Object of interest:", object_of_interest)
+print("Object of interest:", object_of_interest)"""
 
 try:
     while True:
@@ -130,7 +140,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.7:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == object_of_interest:
+                if CLASSES[idx] == 'bottle':
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image.shape[1], color_image.shape[0], color_image.shape[1],
                          color_image.shape[0]])
@@ -143,10 +153,10 @@ try:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         # Hand Tracking
-        results_hands = hands.process(color_image)
-        palm_center_depth = None
+        #results_hands = hands.process(color_image)
+        #palm_center_depth = None
 
-        if results_hands.multi_hand_landmarks:
+        """if results_hands.multi_hand_landmarks:
             for hand_landmarks in results_hands.multi_hand_landmarks:
                 # Calculate the middle palm point
                 palm_x = sum([hand_landmarks.landmark[i].x for i in [0, 5, 9, 13, 17]]) / 5
@@ -168,7 +178,7 @@ try:
 
             # Draw the vector line from palm to object
             if object_center is not None and palm_coord is not None:
-                cv2.line(color_image, palm_coord, object_center, (255, 0, 0), 2)
+                cv2.line(color_image, palm_coord, object_center, (255, 0, 0), 2)"""
 
        
 
