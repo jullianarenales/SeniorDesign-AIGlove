@@ -1,8 +1,8 @@
 import time
 import os
 import sys
-os.add_dll_directory("E:\\Users\\amade\\opencvGPU\\build\\bin")
-sys.path.append("E:\\Users\\amade\\anaconda3\\Lib\\site-packages")
+# os.add_dll_directory("E:\\Users\\amade\\opencvGPU\\build\\bin")
+# sys.path.append("E:\\Users\\amade\\anaconda3\\Lib\\site-packages")
 import cv2
 import numpy as np
 import mediapipe as mp
