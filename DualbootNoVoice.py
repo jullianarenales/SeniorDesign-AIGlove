@@ -11,13 +11,12 @@ import speech_recognition as sr
 import pyttsx3
 import spacy
 import os.path
-import simpleaudio as sa
 
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
 
 # Initialize text-to-speech engine
-engine = pyttsx3.init()
+#engine = pyttsx3.init()
 
 # Initialize NLP model
 nlp = spacy.load("en_core_web_sm")
@@ -28,12 +27,10 @@ current_dir = os.getcwd()
 # Initialize MediaPipe solutions
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(min_detection_confidence=0.2)
-
 # Specify the path to the bag file
 # Configure depth and color streams from Intel RealSense
 pipeline = rs.pipeline()
 config = rs.config()
-
 # Check if RealSense camera is connected
 realsense_connected = False
 try:
@@ -59,44 +56,18 @@ if not realsense_connected:
 # Start streaming
 pipeline.start(config)
 
-# Load pre-trained model for object detection (modify paths as needed)
-prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
-caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
+onnxmodel_path = os.path.join(current_dir, "ssd_mobilenet_v1_13-qdq.onnx")   
 
-
-#Activate CUDA support
-net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+net = cv2.dnn.readNetFromONNX(onnxmodel_path)
 if cuda_available:
     print("CUDA is available. Enabling CUDA support in OpenCV.")
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 else:
     print("CUDA is not available. Using CPU for OpenCV operations.")
-
+    
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
-
-
-# Speech recognition functions
-def speak(text):
-    engine.say(text)
-    engine.runAndWait()
-
-
-def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        speak("Listening...")
-        audio = recognizer.listen(source)
-        try:
-            speech_text = recognizer.recognize_google(audio)
-            print("You said: " + speech_text)
-            return speech_text
-        except sr.UnknownValueError:
-            print("Could not understand the audio")
-        except sr.RequestError:
-            print("Could not request results from the service")
-
 
 # Function to get 3D coordinates
 def get_3d_coordinates(depth_frame, x, y):
@@ -140,31 +111,13 @@ def get_average_depth(depth_frame, bbox):
         return None
 
 
-def calculate_beep_frequency(vector_length):
-    # Map vector length to beep frequency
-    # Adjust these parameters as needed
-    min_frequency = 1000  # Minimum beep frequency
-    max_frequency = 5000  # Maximum beep frequency
-    max_vector_length = 300  # Maximum length of vector for max frequency
-    min_vector_length = 50  # Minimum length of vector for min frequency
-
-    # Calculate frequency based on vector length
-    if vector_length < min_vector_length:
-        return max_frequency
-    elif vector_length > max_vector_length:
-        return min_frequency
-    else:
-        return max_frequency - ((vector_length - min_vector_length) / (max_vector_length - min_vector_length)) * (
-                    max_frequency - min_frequency)
-
-
 # Define a square size for depth calculation
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = "bottle"  # recognize_speech()
-object_of_interest = spoken_text
-print("Object of interest:", spoken_text)
+
+object_of_interest = "bottle"
+
 
 # Variables for performance tracking
 start_time = time.time()
@@ -200,7 +153,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.7:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == object_of_interest:
+                if CLASSES[idx] == "bottle":
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image.shape[1], color_image.shape[0], color_image.shape[1],
                          color_image.shape[0]])
@@ -240,28 +193,13 @@ try:
             if object_center is not None and palm_coord is not None:
                 cv2.line(color_image, palm_coord, object_center, (255, 0, 0), 2)
 
-                # Calculate length of the vector
-                vector_length = np.linalg.norm(vector)
-
-                # Calculate beep frequency based on vector length
-                beep_frequency = calculate_beep_frequency(vector_length)
-
-                # Play beep with the calculated frequency
-                beep_signal = (np.sin(2 * np.pi * beep_frequency * np.linspace(0, 0.1, int(44100 * 0.1)))).astype(np.float32)
-                sa.play_buffer(beep_signal, 1, 2, 44100)
-
             # Display both color and depth images
         cv2.imshow('RealSense Color', color_image)
         cv2.imshow('RealSense Depth', depth_colormap)
 
-        # Variables for performance tracking
-        start_time = time.time()
-        start_time_30 = time.time()
-        frame_count = 0
-        frame_count_30 = 0
-        fps_window = 500
-        fps_accumulator = 0
-        total_fps = 0
+        # Increment frame count
+        frame_count += 1
+        frame_count_30 += 1
 
         # Calculate and display frame rate every 1 seconds
         elapsed_time = time.time() - start_time
@@ -283,6 +221,7 @@ try:
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        
 finally:
     pipeline.stop()
     cv2.destroyAllWindows()
