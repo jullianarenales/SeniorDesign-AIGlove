@@ -69,28 +69,6 @@ else:
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
-
-# Speech recognition functions
-#def speak(text):
-#    engine.say(text)
-#   engine.runAndWait()
-
-
-#def recognize_speech():
-#    recognizer = sr.Recognizer()
-#    with sr.Microphone() as source:
-#        speak("Listening...")
-#        audio = recognizer.listen(source)
-#        try:
-#            speech_text = recognizer.recognize_google(audio)
-#            print("You said: " + speech_text)
-#            return speech_text
-#        except sr.UnknownValueError:
-#            print("Could not understand the audio")
-#        except sr.RequestError:
-#           print("Could not request results from the service")
-
-
 # Function to get 3D coordinates
 def get_3d_coordinates(depth_frame, x, y):
     if 0 <= x < depth_frame.get_width() and 0 <= y < depth_frame.get_height():
@@ -137,9 +115,9 @@ def get_average_depth(depth_frame, bbox):
 square_size = 5
 
 # Recognize speech and extract object
-#spoken_text = recognize_speech()
+
 object_of_interest = "bottle"
-#print("Object of interest:", spoken_text)
+
 
 # Variables for performance tracking
 start_time = time.time()
