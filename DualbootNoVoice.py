@@ -15,14 +15,6 @@ import os.path
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
 
-# Enable CUDA if available !!!!!!!!!!!! IF THIS BREAKS JUST COMMENT IT OUT !!!!!!!!!!!!!!! TODO: Cv2 Dnn CUDA support cannot be enabled this way leaving this for archive purposes - Amadeo
-#if cuda_available:
-#    print("CUDA is available. Enabling CUDA support in OpenCV.")
-    #cv2.dnn.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    #cv2.dnn.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-#else:
-#    print("CUDA is not available. Using CPU for OpenCV operations.")
-
 # Initialize text-to-speech engine
 #engine = pyttsx3.init()
 
@@ -84,19 +76,19 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus"
 #   engine.runAndWait()
 
 
-def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        speak("Listening...")
-        audio = recognizer.listen(source)
-        try:
-            speech_text = recognizer.recognize_google(audio)
-            print("You said: " + speech_text)
-            return speech_text
-        except sr.UnknownValueError:
-            print("Could not understand the audio")
-        except sr.RequestError:
-           print("Could not request results from the service")
+#def recognize_speech():
+#    recognizer = sr.Recognizer()
+#    with sr.Microphone() as source:
+#        speak("Listening...")
+#        audio = recognizer.listen(source)
+#        try:
+#            speech_text = recognizer.recognize_google(audio)
+#            print("You said: " + speech_text)
+#            return speech_text
+#        except sr.UnknownValueError:
+#            print("Could not understand the audio")
+#        except sr.RequestError:
+#           print("Could not request results from the service")
 
 
 # Function to get 3D coordinates

@@ -1,4 +1,8 @@
 import time
+import os
+import sys
+os.add_dll_directory("E:\\Users\\amade\\opencvGPU\\build\\bin")
+sys.path.append("E:\\Users\\amade\\anaconda3\\Lib\\site-packages")
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -11,14 +15,6 @@ import winsound  # For Windows idk
 
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
-
-# Enable CUDA if available !!!!!!!!!!!! IF THIS BREAKS JUST COMMENT IT OUT !!!!!!!!!!!!!!! TODO: Cv2 Dnn CUDA support cannot be enabled this way leaving this for archive purposes - Amadeo
-#if cuda_available:
-#    print("CUDA is available. Enabling CUDA support in OpenCV.")
-    #cv2.dnn.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    #cv2.dnn.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-#else:
-#    print("CUDA is not available. Using CPU for OpenCV operations.")
 
 # Initialize text-to-speech engine
 engine = pyttsx3.init()
@@ -65,6 +61,8 @@ pipeline.start(config)
 prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
 caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
 
+
+#Activate CUDA support
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 if cuda_available:
     print("CUDA is available. Enabling CUDA support in OpenCV.")
