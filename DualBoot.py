@@ -11,7 +11,8 @@ import speech_recognition as sr
 import pyttsx3
 import spacy
 import os.path
-import simpleaudio as sa
+
+# import simpleaudio as sa
 
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
@@ -39,8 +40,8 @@ realsense_connected = False
 try:
     pipeline = rs.pipeline()
     config = rs.config()
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.rgb8, 30)
+    config.enable_stream(rs.stream.depth, rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, rs.format.rgb8, 30)
     pipeline.start(config)
     realsense_connected = True
 except Exception as e:
@@ -63,8 +64,7 @@ pipeline.start(config)
 prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
 caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
 
-
-#Activate CUDA support
+# Activate CUDA support
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 if cuda_available:
     print("CUDA is available. Enabling CUDA support in OpenCV.")
@@ -155,7 +155,7 @@ def calculate_beep_frequency(vector_length):
         return min_frequency
     else:
         return max_frequency - ((vector_length - min_vector_length) / (max_vector_length - min_vector_length)) * (
-                    max_frequency - min_frequency)
+                max_frequency - min_frequency)
 
 
 # Define a square size for depth calculation
@@ -175,11 +175,15 @@ fps_window = 500
 fps_accumulator = 0
 total_fps = 0
 
+align_to = rs.stream.color
+align = rs.align(align_to)
+
 try:
     while True:
         frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
+        aligned_frames = align.process(frames)
+        depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
         if not depth_frame or not color_frame:
             continue
 
@@ -247,11 +251,12 @@ try:
                 beep_frequency = calculate_beep_frequency(vector_length)
 
                 # Play beep with the calculated frequency
-                beep_signal = (np.sin(2 * np.pi * beep_frequency * np.linspace(0, 0.1, int(44100 * 0.1)))).astype(np.float32)
-                sa.play_buffer(beep_signal, 1, 2, 44100)
+                beep_signal = (np.sin(2 * np.pi * beep_frequency * np.linspace(0, 0.1, int(44100 * 0.1)))).astype(
+                    np.float32)
+                # sa.play_buffer(beep_signal, 1, 2, 44100)
 
             # Display both color and depth images
-        cv2.imshow('RealSense Color', color_image)
+        cv2.imshow('RealSense Color Resize', color_image)
         cv2.imshow('RealSense Depth', depth_colormap)
 
         # Variables for performance tracking
@@ -272,7 +277,7 @@ try:
             start_time = time.time()
             frame_count = 0
             fps_accumulator += frame_rate
-            
+
         elapsed_time_30 = time.time() - start_time_30
         if elapsed_time_30 > 30:
             average_fps_over_30_seconds = fps_accumulator / 30.0
