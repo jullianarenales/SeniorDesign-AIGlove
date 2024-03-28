@@ -24,7 +24,7 @@ cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
 #    print("CUDA is not available. Using CPU for OpenCV operations.")
 
 # Initialize text-to-speech engine
-engine = pyttsx3.init()
+#engine = pyttsx3.init()
 
 # Initialize NLP model
 nlp = spacy.load("en_core_web_sm")
@@ -64,11 +64,9 @@ if not realsense_connected:
 # Start streaming
 pipeline.start(config)
 
-# Load pre-trained model for object detection (modify paths as needed)
-prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
-caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
+onnxmodel_path = os.path.join(current_dir, "ssd_mobilenet_v1_13-qdq.onnx")   
 
-net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+net = cv2.dnn.readNetFromONNX(onnxmodel_path)
 if cuda_available:
     print("CUDA is available. Enabling CUDA support in OpenCV.")
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
@@ -81,9 +79,9 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus"
 
 
 # Speech recognition functions
-def speak(text):
-    engine.say(text)
-    engine.runAndWait()
+#def speak(text):
+#    engine.say(text)
+#   engine.runAndWait()
 
 
 def recognize_speech():
@@ -147,9 +145,9 @@ def get_average_depth(depth_frame, bbox):
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = recognize_speech()
-object_of_interest = spoken_text
-print("Object of interest:", spoken_text)
+#spoken_text = recognize_speech()
+object_of_interest = "bottle"
+#print("Object of interest:", spoken_text)
 
 # Variables for performance tracking
 start_time = time.time()
@@ -185,7 +183,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.7:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == "water bottle":
+                if CLASSES[idx] == "bottle":
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image.shape[1], color_image.shape[0], color_image.shape[1],
                          color_image.shape[0]])
@@ -229,14 +227,9 @@ try:
         cv2.imshow('RealSense Color', color_image)
         cv2.imshow('RealSense Depth', depth_colormap)
 
-        # Variables for performance tracking
-        start_time = time.time()
-        start_time_30 = time.time()
-        frame_count = 0
-        frame_count_30 = 0
-        fps_window = 500
-        fps_accumulator = 0
-        total_fps = 0
+        # Increment frame count
+        frame_count += 1
+        frame_count_30 += 1
 
         # Calculate and display frame rate every 1 seconds
         elapsed_time = time.time() - start_time
@@ -258,6 +251,7 @@ try:
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        
 finally:
     pipeline.stop()
     cv2.destroyAllWindows()
