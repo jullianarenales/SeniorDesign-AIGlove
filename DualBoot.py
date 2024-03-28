@@ -7,7 +7,7 @@ import speech_recognition as sr
 import pyttsx3
 import spacy
 import os.path
-import winsound  # For Windows idk
+import simpleaudio as sa
 
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
@@ -32,10 +32,12 @@ current_dir = os.getcwd()
 # Initialize MediaPipe solutions
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(min_detection_confidence=0.2)
+
 # Specify the path to the bag file
 # Configure depth and color streams from Intel RealSense
 pipeline = rs.pipeline()
 config = rs.config()
+
 # Check if RealSense camera is connected
 realsense_connected = False
 try:
@@ -72,7 +74,7 @@ if cuda_available:
     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 else:
     print("CUDA is not available. Using CPU for OpenCV operations.")
-    
+
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
@@ -95,7 +97,7 @@ def recognize_speech():
         except sr.UnknownValueError:
             print("Could not understand the audio")
         except sr.RequestError:
-           print("Could not request results from the service")
+            print("Could not request results from the service")
 
 
 # Function to get 3D coordinates
@@ -162,7 +164,7 @@ def calculate_beep_frequency(vector_length):
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = "bottle" #recognize_speech()
+spoken_text = "bottle"  # recognize_speech()
 object_of_interest = spoken_text
 print("Object of interest:", spoken_text)
 
@@ -241,8 +243,9 @@ try:
                 # Calculate beep frequency based on vector length
                 beep_frequency = calculate_beep_frequency(vector_length)
 
-                # Beep with the calculated frequency
-                winsound.Beep(int(beep_frequency), 100)  # Adjust duration as needed
+                # Play beep with the calculated frequency
+                beep_signal = (np.sin(2 * np.pi * beep_frequency * np.linspace(0, 0.1, int(44100 * 0.1)))).astype(np.float32)
+                sa.play_buffer(beep_signal, 1, 2, 44100)
 
             # Display both color and depth images
         cv2.imshow('RealSense Color', color_image)
