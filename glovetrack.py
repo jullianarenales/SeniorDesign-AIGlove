@@ -5,22 +5,30 @@ import pyrealsense2 as rs
 
 print(cv2.__version__)
 
-# Configure depth and color streams from the bag file
+# Configure depth and color streams
 pipeline = rs.pipeline()
 config = rs.config()
 
-try:
-    # Specify the path to your bag file
-    bag_file_path = r"C:\Users\korth\OneDrive\Documents\20240328_212449.bag"
-    
-    # Enable device from the bag file
-    config.enable_device_from_file(bag_file_path)
-    
-    # Start streaming from the bag file
-    pipeline.start(config)
-except RuntimeError as e:
-    print(f"Failed to start pipeline: {e}")
-    sys.exit(1)
+# Get the device product line
+pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+pipeline_profile = config.resolve(pipeline_wrapper)
+device = pipeline_profile.get_device()
+device_product_line = str(device.get_info(rs.camera_info.product_line))
+
+
+# Enable depth stream with the same resolution as the color stream
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+color_sensor = pipeline_profile.get_device().first_color_sensor()
+current_brightness = color_sensor.get_option(rs.option.brightness)
+print(f"Current brightness: {current_brightness}")
+new_brightness = 5  # Adjust this value as needed (0-255)
+color_sensor.set_option(rs.option.brightness, new_brightness)
+print(f"Brightness set to: {new_brightness}")
+
+# Start streaming
+pipeline.start(config)
 
 # Load the MobileNet SSD object detection model
 net = cv2.dnn.readNetFromCaffe(r'C:\Users\korth\Downloads\MobileNetSSD_deploy.prototxt.txt',
@@ -29,44 +37,42 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus"
            "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
 # Function to get 3D coordinates
-# def get_3d_coordinates(depth_frame, x, y):
+def get_3d_coordinates(depth_frame, x, y):
+    depth = depth_frame.get_distance(x, y)
+    depth_point = rs.rs2_deproject_pixel_to_point(
+        depth_frame.get_profile().as_video_stream_profile().get_intrinsics(),
+        [x, y], depth)
+    return np.array(depth_point)
+
+# def get_3d_coordinates(depth_frame, x, y, region_size=50):
 #     if 0 <= x < depth_frame.get_width() and 0 <= y < depth_frame.get_height():
-#         depth = depth_frame.get_distance(x, y)
-#         depth_point = rs.rs2_deproject_pixel_to_point(
-#             depth_frame.get_profile().as_video_stream_profile().get_intrinsics(),
-#             [x, y], depth)
-#         return np.array(depth_point)
-#     else:
-#         return None
-def get_3d_coordinates(depth_frame, x, y, region_size=50):
-    if 0 <= x < depth_frame.get_width() and 0 <= y < depth_frame.get_height():
-        points = []
-        depth_frame_width = depth_frame.get_width()
-        depth_frame_height = depth_frame.get_height()
-        half_region = region_size // 2
+#         points = []
+#         depth_frame_width = depth_frame.get_width()
+#         depth_frame_height = depth_frame.get_height()
+#         half_region = region_size // 2
 
-        for dx in range(-half_region, half_region + 1):
-            for dy in range(-half_region, half_region + 1):
-                sample_x = x + dx
-                sample_y = y + dy
+#         for dx in range(-half_region, half_region + 1):
+#             for dy in range(-half_region, half_region + 1):
+#                 sample_x = x + dx
+#                 sample_y = y + dy
 
-                # Ensure the sample points are within the frame boundaries
+#                 # Ensure the sample points are within the frame boundaries
             
-                if 0 <= sample_x < depth_frame_width and 0 <= sample_y < depth_frame_height:
-                    depth = depth_frame.get_distance(sample_x, sample_y)
-                     # Ignore zero values
-                    if depth >0:
-                        depth_point = rs.rs2_deproject_pixel_to_point(
-                            depth_frame.get_profile().as_video_stream_profile().get_intrinsics(),
-                            [sample_x, sample_y], depth)
-                        points.append(depth_point)
+#                 if 0 <= sample_x < depth_frame_width and 0 <= sample_y < depth_frame_height:
+#                     depth = depth_frame.get_distance(sample_x, sample_y)
+#                      # Ignore zero values
+#                     if depth >0:
+#                         depth_point = rs.rs2_deproject_pixel_to_point(
+#                             depth_frame.get_profile().as_video_stream_profile().get_intrinsics(),
+#                             [sample_x, sample_y], depth)
+#                         points.append(depth_point)
          
 
-                if points:
-                    avg_point = np.mean(points, axis=0)
-                    #print(f"3D Coordinates: {avg_point}")  # Print the average 3D coordinates
-                    return avg_point
-                return None
+#                 if points:
+#                     avg_point = np.mean(points, axis=0)
+#                     #print(f"3D Coordinates: {avg_point}")  # Print the average 3D coordinates
+#                     return avg_point
+#                 return None
 
 # Function to get average depth, ignoring zero values
 def get_average_depth(depth_frame, bbox):
@@ -121,16 +127,16 @@ def get_finger_direction(vector):
         return 'pinky'  # Object is to the right
 
 # Function to find the center of the bright green glove
-def find_glove_center(color_image_bgr):
-    # Convert the color image from BGR to HSV color space
-    hsv_image = cv2.cvtColor(color_image_bgr, cv2.COLOR_BGR2HSV)
+def find_glove_center(color_image_rgb):
+    # Convert the color image from RGB to HSV color space
+    hsv_image = cv2.cvtColor(color_image_rgb, cv2.COLOR_RGB2HSV)
 
-    # Define the lower and upper bounds of the green color in HSV
-    lower_green = np.array([30, 50, 50])
-    upper_green = np.array([60, 255, 255])
+    # Define the lower and upper bounds of the bright green to bright yellow color range in HSV
+    lower_color = np.array([60, 75, 220])
+    upper_color = np.array([90, 100, 255])
 
-    # Create a binary mask based on the green color range
-    mask = cv2.inRange(hsv_image, lower_green, upper_green)
+    # Create a binary mask based on the color range
+    mask = cv2.inRange(hsv_image, lower_color, upper_color)
 
     # Apply morphological operations to remove noise and fill gaps
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -150,8 +156,11 @@ def find_glove_center(color_image_bgr):
             return (cx, cy)
 
     return None
+    
 try:
     while True:
+        object_point=None
+        object_center=None
         frames = pipeline.wait_for_frames()
         depth_frame = frames.get_depth_frame()
         color_frame = frames.get_color_frame()
@@ -161,7 +170,7 @@ try:
         color_image = np.asanyarray(color_frame.get_data())
         
         # Convert color space from RGB to BGR
-        color_image_bgr = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
+        color_image_bgr = color_image#cv2.cvtColor(color_image, cv2.COLOR_RGB)
         
         depth_image = np.asanyarray(depth_frame.get_data())
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
@@ -175,7 +184,7 @@ try:
         # Loop over the detections
         for i in np.arange(0, detections.shape[2]):
             confidence = detections[0, 0, i, 2]
-            if confidence > 0.3:
+            if confidence > 0.4:
                 idx = int(detections[0, 0, i, 1])
                 if CLASSES[idx] == 'bottle':
                     box = detections[0, 0, i, 3:7] * np.array(
@@ -184,7 +193,7 @@ try:
                     (startX, startY, endX, endY) = box.astype("int")
                     object_center = (startX + (endX - startX) // 2, startY + (endY - startY) // 2)
                     object_point = get_3d_coordinates(depth_frame, object_center[0], object_center[1])
-                    object_avg_depth = get_average_depth(depth_frame, (startX, startY, endX - startX, endY - startY))
+                    #object_avg_depth = get_average_depth(depth_frame, (startX, startY, endX - startX, endY - startY))
                     cv2.rectangle(color_image_bgr, (startX, startY), (endX, endY), (0, 0, 255), 2)
                     cv2.putText(color_image_bgr, f"{CLASSES[idx]}: {confidence:.2f}", (startX, startY - 15),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
@@ -192,11 +201,18 @@ try:
         # Find the center of the bright green glove
         glove_center = find_glove_center(color_image_bgr)
         
+        if object_center is not None:
+            cv2.circle(color_image_bgr, object_center,5,(0,255,0),-1)
+
+        
 
         if glove_center is not None:
-            cv2.circle(color_image_bgr, glove_center, 5, (0, 0, 255), -1)
+            glove_circle=cv2.circle(color_image_bgr, glove_center, 5, (0, 0, 255), -1)
+            
             glove_point = get_3d_coordinates(depth_frame, glove_center[0], glove_center[1])
-
+        else:
+            glove_point=None
+            glove_circle=None
         #print(f"Object Point: {object_point}")  # Print the object point
         #print(f"Glove Point: {glove_point}") 
         
