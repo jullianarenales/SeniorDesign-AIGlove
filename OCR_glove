@@ -1,0 +1,39 @@
+import cv2
+import pytesseract
+
+# Initialize the camera
+cap = cv2.VideoCapture(0)  # 0 is usually the default camera
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+if not cap.isOpened():
+    raise IOError("Cannot open webcam")
+
+try:
+    # Capture a single frame
+    ret, frame = cap.read()
+    if not ret:
+        raise IOError("Cannot capture image from webcam")
+
+    # Preprocess the image
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+    processed = cv2.adaptiveThreshold(resized, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                      cv2.THRESH_BINARY, 11, 2)
+
+    # Display the processed image
+    cv2.imshow("Processed Image", processed)
+    cv2.waitKey(0)  # Wait for a key press to continue
+
+    # OCR configuration
+    config = '--oem 3 --psm 6'
+    text = pytesseract.image_to_string(processed, config=config)
+
+    # Print the detected text
+    print("Detected Text:")
+    print(text)
+
+finally:
+    # Release the camera
+    cap.release()
+    cv2.destroyAllWindows()
