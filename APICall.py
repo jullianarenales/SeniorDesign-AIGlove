@@ -31,7 +31,7 @@ print(f"Brightness set to: {new_brightness}")
 pipeline.start(config)
 
 # Anthropic API key
-api_key = "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"
+api_key = 
 
 # Create an instance of the Anthropic client
 client = Anthropic(api_key=api_key)
