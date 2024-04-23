@@ -12,8 +12,6 @@ import pyttsx3
 import spacy
 import os.path
 
-# import simpleaudio as sa
-
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
 
@@ -84,9 +82,11 @@ def speak(text):
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        speak("Listening...")
+        print("Listening")
+        recognizer.adjust_for_ambient_noise(source, duration=0.2)
         audio = recognizer.listen(source)
         try:
+            print("Recognizing...")
             speech_text = recognizer.recognize_google(audio)
             print("You said: " + speech_text)
             return speech_text
@@ -219,10 +219,9 @@ def transform_vector(vector, angle_deg):
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = "bottle"  # recognize_speech()
+spoken_text = recognize_speech()
 object_of_interest = spoken_text
 print("Object of interest:", spoken_text)
-
 # Variables for performance tracking
 start_time = time.time()
 start_time_30 = time.time()
@@ -265,7 +264,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.3:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == 'bottle':
+                if CLASSES[idx] == object_of_interest:
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image_bgr.shape[1], color_image_bgr.shape[0], color_image_bgr.shape[1],
                          color_image_bgr.shape[0]])
