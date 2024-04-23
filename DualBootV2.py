@@ -79,7 +79,7 @@ else:
     print("CUDA is not available. Using CPU for OpenCV operations.")
 
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "scissors",
-           "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+           "diningtable", "dog", "horse", "cell" "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
 
 # Speech recognition functions
@@ -91,9 +91,11 @@ def speak(text):
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        speak("Listening...")
+        recognizer.adjust_for_ambient_noise(source, 0.2)
+        print("Listening...")
         audio = recognizer.listen(source)
         try:
+            print("Recognizing")
             speech_text = recognizer.recognize_google(audio)
             print("You said: " + speech_text)
             return speech_text
@@ -241,7 +243,7 @@ def get_average_depth(depth_frame, bbox):
 square_size = 5
 
 # Recognize speech and extract object
-spoken_text = recognize_speech()
+spoken_text = "chair"
 object_of_interest = spoken_text
 print("Object of interest:", spoken_text)
 
@@ -394,7 +396,7 @@ try:
             confidence = detections[0, 0, i, 2]
             if confidence > 0.3:
                 idx = int(detections[0, 0, i, 1])
-                if CLASSES[idx] == 'bottle':
+                if CLASSES[idx] == object_of_interest:
                     box = detections[0, 0, i, 3:7] * np.array(
                         [color_image_bgr.shape[1], color_image_bgr.shape[0], color_image_bgr.shape[1],
                          color_image_bgr.shape[0]])
@@ -452,7 +454,7 @@ try:
                 cv2.line(color_image_bgr, glove_center, object_center, (255, 0, 0), 2)
 
         # Display both color and depth images
-        cv2.imshow('RealSense Color', color_image_bgr)
+        cv2.imshow('RealSense Color', cv2.resize(color_image_bgr, None, fx=2.5, fy=2, interpolation=cv2.INTER_LINEAR))
         cv2.imshow('RealSense Depth', depth_colormap)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
