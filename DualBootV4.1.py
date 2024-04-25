@@ -103,6 +103,8 @@ def recognize_speech():
             if word in CLASSES:
                 recognized_text = word
                 break
+            elif word == 'monitor':
+                recognized_text = 'tvmonitor'
         
         print("Class matched:", recognized_text)
     else:
