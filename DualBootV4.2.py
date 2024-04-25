@@ -12,12 +12,7 @@ from vosk import Model, KaldiRecognizer
 import pyaudio
 
 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(38,GPIO.OUT)
-GPIO.setup(37,GPIO.OUT)
-GPIO.setup(36,GPIO.OUT)
-GPIO.setup(35,GPIO.OUT)
-GPIO.setup(33,GPIO.OUT)
+
 
 
 # Check if CUDA is available
@@ -221,6 +216,13 @@ def main():
     # Define a square size for depth calculation
     square_size = 5
 
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(38, GPIO.OUT)
+    GPIO.setup(37, GPIO.OUT)
+    GPIO.setup(36, GPIO.OUT)
+    GPIO.setup(35, GPIO.OUT)
+    GPIO.setup(33, GPIO.OUT)
+
     # Recognize speech and extract object
     spoken_text = recognize_speech()
     object_of_interest = spoken_text
@@ -336,13 +338,8 @@ def main():
         print(f"Error: {e}")
     finally:
         pipeline.stop()
-        GPIO.output(38, GPIO.LOW)
-        GPIO.output(37, GPIO.LOW)
-        GPIO.output(36, GPIO.LOW)
-        GPIO.output(35, GPIO.LOW)
-        GPIO.output(33, GPIO.LOW)
-        GPIO.cleanup()
         cv2.destroyAllWindows()
+
 # Function to handle key press events
 running = False
 
@@ -351,10 +348,19 @@ def on_press(key):
     if key == keyboard.Key.space:
         running = not running  # Toggle the running flag
         if running:
-            print("Program started. Press space again to stop.")
+            print("Program started. Press space to restart. Press q to kill.")
             main()
         else:
             print("Program stopped.")
+    elif key == keyboard.KeyCode.from_char('q'):
+        print("Exiting program...")
+        GPIO.output(38, GPIO.LOW)
+        GPIO.output(37, GPIO.LOW)
+        GPIO.output(36, GPIO.LOW)
+        GPIO.output(35, GPIO.LOW)
+        GPIO.output(33, GPIO.LOW)
+        GPIO.cleanup()
+        os._exit(0)  # Forcefully exit the program
 
 # Wait for space key to be pressed
 print("Press space to start...")

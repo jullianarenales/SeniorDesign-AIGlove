@@ -56,7 +56,7 @@ if not realsense_connected:
     config.enable_device_from_file(bag_file_path)
 
 # Start streaming
-pipeline.start(config)
+
 
 # Load pre-trained model for object detection (modify paths as needed)
 prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
@@ -65,8 +65,6 @@ voice_model = Model(current_dir + "/vosk-model-small-en-us-0.15")
 recognizer = KaldiRecognizer(voice_model, 16000)
 
 mic = pyaudio.PyAudio()
-stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8192)
-stream.start_stream()
 
 # Activate CUDA support
 net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
@@ -88,9 +86,11 @@ def speak(text):
 
 
 def recognize_speech():
+    stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8192)
+    stream.start_stream()
     recognized_text = ""
     print("Listening for 3 seconds...")
-    data = stream.read(3 * 16000 * 2)  # Read 3 seconds of audio data
+    data = stream.read(2 * 16000 * 2)  # Read 3 seconds of audio data
     if recognizer.AcceptWaveform(data):
         text = recognizer.Result()
         recognized_text = text[text.index('"text"') + 9: text.rindex('"')]  # Extract recognized text
@@ -98,6 +98,7 @@ def recognize_speech():
         print("You said:", recognized_text)
     else:
         print("Could not understand the audio")
+    stream.stop_stream()
     return recognized_text
 
 
@@ -224,11 +225,13 @@ def transform_vector(vector, angle_deg):
 
 
 def main():
+    pipeline.start(config)
     # Define a square size for depth calculation
     square_size = 5
 
     # Recognize speech and extract object
     spoken_text = recognize_speech()
+
     object_of_interest = spoken_text
     print("Object of interest:", spoken_text)
     # Variables for performance tracking
@@ -331,19 +334,13 @@ def main():
             cv2.imshow('RealSense Color', color_image_bgr)
             cv2.imshow('RealSense Depth', depth_colormap)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord(' '):
                 break
     except RuntimeError as e:
         print(f"Error: {e}")
-    # finally:
-        # pipeline.stop()
-        # GPIO.output(38, GPIO.LOW)
-        # GPIO.output(37, GPIO.LOW)
-        # GPIO.output(36, GPIO.LOW)
-        # GPIO.output(35, GPIO.LOW)
-        # GPIO.output(33, GPIO.LOW)
-        # GPIO.cleanup()
-        # cv2.destroyAllWindows()
+    finally:
+        pipeline.stop()
+        cv2.destroyAllWindows()
 
 # Function to handle key press events
 running = False
@@ -353,10 +350,19 @@ def on_press(key):
     if key == keyboard.Key.space:
         running = not running  # Toggle the running flag
         if running:
-            print("Program started. Press space again to stop.")
+            print("Program started. Press space to restart. Press q to kill.")
             main()
         else:
             print("Program stopped.")
+    elif key == keyboard.KeyCode.from_char('q'):
+        print("Exiting program...")
+        # GPIO.output(38, GPIO.LOW)
+        # GPIO.output(37, GPIO.LOW)
+        # GPIO.output(36, GPIO.LOW)
+        # GPIO.output(35, GPIO.LOW)
+        # GPIO.output(33, GPIO.LOW)
+        # GPIO.cleanup()
+        os._exit(0)  # Forcefully exit the program
 
 # Wait for space key to be pressed
 print("Press space to start...")
