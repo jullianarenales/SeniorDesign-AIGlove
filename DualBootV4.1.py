@@ -94,6 +94,17 @@ def recognize_speech():
         recognized_text = text[text.index('"text"')+9 : text.rindex('"')]  # Extract recognized text
         recognized_text = recognized_text.strip('"')  # Remove extra quotation marks
         print("You said:", recognized_text)
+
+        # Split the recognized text into individual words
+        words = recognized_text.lower().split()
+
+        # Filter the words to match classes
+        for word in words:
+            if word in CLASSES:
+                recognized_text = word
+                break
+        
+        print("Class matched:", recognized_text)
     else:
         print("Could not understand the audio")
     return recognized_text
