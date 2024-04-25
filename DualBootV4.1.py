@@ -342,3 +342,4 @@ finally:
     GPIO.output(33, GPIO.LOW)
     GPIO.cleanup()
     cv2.destroyAllWindows()
+    os._exit(0)
