@@ -1,18 +1,24 @@
 import time
 import os
-import sys
-# os.add_dll_directory("E:\\Users\\amade\\opencvGPU\\build\\bin")
-# sys.path.append("E:\\Users\\amade\\anaconda3\\Lib\\site-packages")
 import cv2
 import numpy as np
-import mediapipe as mp
 import pyrealsense2 as rs
 import pyttsx3
 import spacy
+import os.path
+import Jetson.GPIO as GPIO
 from pynput import keyboard
 from vosk import Model, KaldiRecognizer
 import pyaudio
-import os.path
+
+
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(38,GPIO.OUT)
+GPIO.setup(37,GPIO.OUT)
+GPIO.setup(36,GPIO.OUT)
+GPIO.setup(35,GPIO.OUT)
+GPIO.setup(33,GPIO.OUT)
+
 
 # Check if CUDA is available
 cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
@@ -26,34 +32,27 @@ nlp = spacy.load("en_core_web_sm")
 # Get current working directory
 current_dir = os.getcwd()
 
-# Initialize MediaPipe solutions
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(min_detection_confidence=0.2)
-
-# Specify the path to the bag file
 # Configure depth and color streams from Intel RealSense
 pipeline = rs.pipeline()
 config = rs.config()
 
-# Check if RealSense camera is connected
-realsense_connected = False
-try:
-    config.enable_stream(rs.stream.depth, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, rs.format.rgb8, 30)
-    pipeline.start(config)
-    realsense_connected = True
-except Exception as e:
-    print(f"Error: {e}")
-    print("RealSense camera not connected. Switching to recorded bag file...")
+# Get the device product line
+pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+pipeline_profile = config.resolve(pipeline_wrapper)
+device = pipeline_profile.get_device()
+device_product_line = str(device.get_info(rs.camera_info.product_line))
 
-if not realsense_connected:
-    # Create RealSense pipeline and configure
-    pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, rs.format.rgb8, 30)
-    bag_file_path = os.path.join(current_dir, "test2.bag")
-    config.enable_device_from_file(bag_file_path)
+
+# Enable depth stream with the same resolution as the color stream
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+color_sensor = pipeline_profile.get_device().first_color_sensor()
+current_brightness = color_sensor.get_option(rs.option.brightness)
+print(f"Current brightness: {current_brightness}")
+new_brightness = 8  # Adjust this value as needed (0-255)
+color_sensor.set_option(rs.option.brightness, new_brightness)
+print(f"Brightness set to: {new_brightness}")
 
 # Start streaming
 pipeline.start(config)
@@ -93,13 +92,12 @@ def recognize_speech():
     data = stream.read(3 * 16000 * 2)  # Read 3 seconds of audio data
     if recognizer.AcceptWaveform(data):
         text = recognizer.Result()
-        recognized_text = text[text.index('"text"') + 9: text.rindex('"')]  # Extract recognized text
+        recognized_text = text[text.index('"text"')+9 : text.rindex('"')]  # Extract recognized text
         recognized_text = recognized_text.strip('"')  # Remove extra quotation marks
         print("You said:", recognized_text)
     else:
         print("Could not understand the audio")
     return recognized_text
-
 
 # Function to get 3D coordinates
 def get_3d_coordinates(depth_frame, x, y):
@@ -142,46 +140,44 @@ def get_average_depth(depth_frame, bbox):
     else:
         return None
 
-
 def get_finger_direction(vector):
     # Assuming the user is facing the positive Y direction
     x, y, _ = vector
     if x < -0.2:
-        # GPIO.output(33, GPIO.HIGH)
-        # GPIO.output(37, GPIO.LOW)
-        # GPIO.output(36, GPIO.LOW)
-        # GPIO.output(35, GPIO.LOW)
-        # GPIO.output(38, GPIO.LOW)
+        GPIO.output(33, GPIO.HIGH)
+        GPIO.output(37, GPIO.LOW)
+        GPIO.output(36, GPIO.LOW)
+        GPIO.output(35, GPIO.LOW)
+        GPIO.output(38, GPIO.LOW)
         return 'thumb'
     elif -0.2 <= x < -0.1:
-        # GPIO.output(38, GPIO.LOW)
-        # GPIO.output(35, GPIO.HIGH)
-        # GPIO.output(36, GPIO.LOW)
-        # GPIO.output(37, GPIO.LOW)
-        # GPIO.output(33, GPIO.LOW)
+        GPIO.output(38, GPIO.LOW)
+        GPIO.output(35, GPIO.HIGH)
+        GPIO.output(36, GPIO.LOW)
+        GPIO.output(37, GPIO.LOW)
+        GPIO.output(33, GPIO.LOW)
         return 'index'
     elif -0.1 <= x <= 0.1:
-        # GPIO.output(38, GPIO.LOW)
-        # GPIO.output(37, GPIO.LOW)
-        # GPIO.output(36, GPIO.HIGH)
-        # GPIO.output(35, GPIO.LOW)
-        # GPIO.output(33, GPIO.LOW)
+        GPIO.output(38, GPIO.LOW)
+        GPIO.output(37, GPIO.LOW)
+        GPIO.output(36, GPIO.HIGH)
+        GPIO.output(35, GPIO.LOW)
+        GPIO.output(33, GPIO.LOW)
         return 'middle'
     elif 0.1 < x <= 0.2:
-        # GPIO.output(38, GPIO.LOW)
-        # GPIO.output(35, GPIO.LOW)
-        # GPIO.output(36, GPIO.LOW)
-        # GPIO.output(37, GPIO.HIGH)
-        # GPIO.output(33, GPIO.LOW)
+        GPIO.output(38, GPIO.LOW)
+        GPIO.output(35, GPIO.LOW)
+        GPIO.output(36, GPIO.LOW)
+        GPIO.output(37, GPIO.HIGH)
+        GPIO.output(33, GPIO.LOW)
         return 'ring'
     else:
-        # GPIO.output(33, GPIO.LOW)
-        # GPIO.output(37, GPIO.LOW)
-        # GPIO.output(36, GPIO.LOW)
-        # GPIO.output(35, GPIO.LOW)
-        # GPIO.output(38, GPIO.HIGH)
+        GPIO.output(33, GPIO.LOW)
+        GPIO.output(37, GPIO.LOW)
+        GPIO.output(36, GPIO.LOW)
+        GPIO.output(35, GPIO.LOW)
+        GPIO.output(38, GPIO.HIGH)
         return 'pinky'
-
 
 def find_glove_center(color_image_rgb):
     # Convert the color image from RGB to HSV color space
@@ -212,8 +208,6 @@ def find_glove_center(color_image_rgb):
             return (cx, cy)
 
     return None
-
-
 def transform_vector(vector, angle_deg):
     angle_rad = np.deg2rad(angle_deg)
     rotation_matrix = np.array([[1, 0, 0],
@@ -231,6 +225,7 @@ def main():
     spoken_text = recognize_speech()
     object_of_interest = spoken_text
     print("Object of interest:", spoken_text)
+
     # Variables for performance tracking
     start_time = time.time()
     start_time_30 = time.time()
@@ -244,6 +239,11 @@ def main():
     align = rs.align(align_to)
     last_object_center = None
     last_object_point = None
+    GPIO.output(38,GPIO.LOW)
+    GPIO.output(37,GPIO.LOW)
+    GPIO.output(36,GPIO.LOW)
+    GPIO.output(35,GPIO.LOW)
+    GPIO.output(33,GPIO.LOW)
     try:
         while True:
 
@@ -318,8 +318,7 @@ def main():
                 vector_label = f"Vector: X={vector[0]:.2f}, Y={vector[1]:.2f}, Z(depth)={vector[2]:.2f}"
                 direction_label = f"Direction: {finger_direction}"
                 cv2.putText(color_image_bgr, vector_label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                cv2.putText(color_image_bgr, direction_label, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
-                            2)
+                cv2.putText(color_image_bgr, direction_label, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 # print(vector_label)
                 print(direction_label)
 
@@ -335,16 +334,15 @@ def main():
                 break
     except RuntimeError as e:
         print(f"Error: {e}")
-    # finally:
-        # pipeline.stop()
-        # GPIO.output(38, GPIO.LOW)
-        # GPIO.output(37, GPIO.LOW)
-        # GPIO.output(36, GPIO.LOW)
-        # GPIO.output(35, GPIO.LOW)
-        # GPIO.output(33, GPIO.LOW)
-        # GPIO.cleanup()
-        # cv2.destroyAllWindows()
-
+    finally:
+        pipeline.stop()
+        GPIO.output(38, GPIO.LOW)
+        GPIO.output(37, GPIO.LOW)
+        GPIO.output(36, GPIO.LOW)
+        GPIO.output(35, GPIO.LOW)
+        GPIO.output(33, GPIO.LOW)
+        GPIO.cleanup()
+        cv2.destroyAllWindows()
 # Function to handle key press events
 running = False
 
