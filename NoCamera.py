@@ -240,10 +240,9 @@ try:
         if not depth_frame or not color_frame:
             continue
 
-        color_image = np.asanyarray(color_frame.get_data())
+        color_image_bgr = np.asanyarray(color_frame.get_data())
 
         # Convert color space from RGB to BGR
-        color_image_bgr = color_image  # cv2.cvtColor(color_image, cv2.COLOR_RGB)
 
         depth_image = np.asanyarray(depth_frame.get_data())
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
@@ -273,9 +272,6 @@ try:
                     last_object_point = object_point
         # Find the center of the bright green glove
         glove_center = find_glove_center(color_image_bgr)
-        # if object_center is None:
-        # object_center = last_object_center
-        # object_point = last_object_point
 
         if object_center is not None:
             cv2.circle(color_image_bgr, object_center, 5, (0, 255, 0), -1)
@@ -287,8 +283,6 @@ try:
         else:
             glove_point = None
             glove_circle = None
-        # print(f"Object Point: {object_point}")  # Print the object point
-        # print(f"Glove Point: {glove_point}")
 
         # Calculate and display the vector
         if object_point is not None and glove_point is not None:
