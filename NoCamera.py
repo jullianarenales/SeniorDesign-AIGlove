@@ -6,11 +6,15 @@ from vosk import Model, KaldiRecognizer
 import pyaudio
 import os.path
 
-# Check if CUDA is available
-cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
-
 # Get current working directory
 current_dir = os.getcwd()
+bag_file_path = os.path.join(current_dir, "test3.bag")
+prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
+caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
+voice_model = Model(current_dir + "/vosk-model-small-en-us-0.15")
+
+# Check if CUDA is available
+cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
 
 # Specify the path to the bag file
 # Configure depth and color streams from Intel RealSense
@@ -20,19 +24,13 @@ config = rs.config()
 # Create RealSense pipeline and configure
 config.enable_stream(rs.stream.depth, rs.format.z16, 30)
 config.enable_stream(rs.stream.color, rs.format.bgr8, 30)
-bag_file_path = os.path.join(current_dir, "test3.bag")
 config.enable_device_from_file(bag_file_path)
 
 # Start streaming
 pipeline.start(config)
 
-
-# Load pre-trained model for object detection (modify paths as needed)
-prototxt_path = os.path.join(current_dir, "MobileNetSSD_deploy.prototxt.txt")
-caffemodel_path = os.path.join(current_dir, "MobileNetSSD_deploy.caffemodel")
-voice_model = Model(current_dir + "/vosk-model-small-en-us-0.15")
+# Load model for audio
 recognizer = KaldiRecognizer(voice_model, 16000)
-
 mic = pyaudio.PyAudio()
 stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8192)
 stream.start_stream()
